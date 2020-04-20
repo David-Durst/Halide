@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
     down(x,y) = gradient(2*x,2*y);
 
-    gradient.compute_at(gradient, x);
+    gradient.compute_at(down, x);
 
     Halide::Target target = Halide::get_host_target();
 

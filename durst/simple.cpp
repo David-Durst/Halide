@@ -8,9 +8,11 @@
 
 // The only Halide header file you need is Halide.h. It includes all of Halide.
 #include "Halide.h"
+#include "helpers.h"
 
 // We'll also include stdio for printf.
 #include <stdio.h>
+#include <typeinfo>
 
 int main(int argc, char **argv) {
 
@@ -28,11 +30,12 @@ int main(int argc, char **argv) {
     gradient.bound(x, 0, 400);
     gradient.bound(y, 0, 400);
 
-    Halide::Target target = Halide::get_host_target();
+    //Halide::Target target = Halide::get_host_target();
 
-    Halide::Module module = gradient.compile_to_module({}, "", target);
+    //Halide::Module module = gradient.compile_to_module({}, "", target);
 
-    std::cout << module << std::endl;
+    auto bounds = gradient.function().schedule().bounds();
+    print_bounds(bounds);
 
     return 0;
 }
