@@ -1,0 +1,26 @@
+brighter_f b0 = do 
+  let brighter = map2C (map2C (map2C (\x y -> addC $ atom_tupleC x y))) (b0) ((const_genC (list_to_seq (Proxy @8) $ replicate 8 $ list_to_seq (Proxy @8) $ replicate 8 $ list_to_seq (Proxy @3) $ replicate 3 $ Atom_UInt8 1)b0))
+  brighter
+brighter_seq_idx = add_indexes $ seq_shallow_to_deep $ 
+   brighter_f $ com_input_seq "I" (Proxy :: Proxy ((Seq 8 (Seq 8 (Seq 3 Atom_UInt8)))))
+
+downplus1_f b1 = do 
+  let down = unpartitionC . mapC (down_1dC 0) . partitionC (Proxy @4) (Proxy @2) $ mapC (unpartitionC . mapC (down_1dC 0) . partitionC (Proxy @4) (Proxy @2) )$ b1
+  let downplus1 = map2C (map2C (map2C (\x y -> addC $ atom_tupleC x y))) (down) ((const_genC (list_to_seq (Proxy @8) $ replicate 8 $ list_to_seq (Proxy @8) $ replicate 8 $ list_to_seq (Proxy @3) $ replicate 3 $ Atom_UInt8 1)b1))
+  downplus1
+downplus1_seq_idx = add_indexes $ seq_shallow_to_deep $ 
+   downplus1_f $ com_input_seq "I" (Proxy :: Proxy ((Seq 8 (Seq 8 (Seq 3 Atom_UInt8)))))
+
+upplus1_f b2 = do 
+  let up = unpartitionC . mapC (up_1dC (Proxy @2)) . partitionC (Proxy @8) (Proxy @1) $ mapC (unpartitionC . mapC (up_1dC (Proxy @2)) . partitionC (Proxy @8) (Proxy @1) )$ b2
+  let upplus1 = map2C (map2C (map2C (\x y -> addC $ atom_tupleC x y))) (up) ((const_genC (list_to_seq (Proxy @8) $ replicate 8 $ list_to_seq (Proxy @8) $ replicate 8 $ list_to_seq (Proxy @3) $ replicate 3 $ Atom_UInt8 1)b2))
+  upplus1
+upplus1_seq_idx = add_indexes $ seq_shallow_to_deep $ 
+   upplus1_f $ com_input_seq "I" (Proxy :: Proxy ((Seq 8 (Seq 8 (Seq 3 Atom_UInt8)))))
+
+conv_f b3 = do 
+  let conv = map2C (map2C (map2C (\x y -> addC $ atom_tupleC x y))) ((map2C (map2C (map2C (\x y -> addC $ atom_tupleC x y))) ((map2C (map2C (map2C (\x y -> addC $ atom_tupleC x y))) (shiftC (Proxy @1) $ mapC (shiftC (Proxy @1))  $ b3) (mapC (shiftC (Proxy @1))  $ b3))) (shiftC (Proxy @1) $ b3))) (b3)
+  conv
+conv_seq_idx = add_indexes $ seq_shallow_to_deep $ 
+   conv_f $ com_input_seq "I" (Proxy :: Proxy ((Seq 8 (Seq 8 (Seq 3 Atom_UInt8)))))
+

@@ -1,73 +1,54 @@
 #include "Halide.h"
-#include "ClockworkExporter.h"
-#include <iostream>
-#include <fstream>
+#include <stdlib.h>
+#include <string>
 
-using std::vector;
-using std::string;
 namespace {
 
 class StencilChain : public Halide::Generator<StencilChain> {
 public:
-    GeneratorParam<int> stencils{"stencils", 6, 1, 100};
-    // 1 if merge stage, 0 if not
-    GeneratorParam<string> merge_stages{"merge_stages", "0101"};
-    const int x_max = 1000;
-    const int y_max =1000;
+    GeneratorParam<int> stencils{"stencils", 32, 1, 100};
+    GeneratorParam<int> muladds{"muladds", 1, 1, 100};
+    GeneratorParam<int> stencil_size{"stencil_size", 5, 1, 100};
 
-    vector<bool> extra_inputs_indicators;
-    vector<Input<Buffer<uint16_t>> *> extra_inputs;
     Input<Buffer<uint16_t>> input{"input", 2};
     Output<Buffer<uint16_t>> output{"output", 2};
 
-    void configure() {
-      string stages_enabled_str = merge_stages.value();
-      for (size_t i = 0; i < stages_enabled_str.size() ; i++) {
-        extra_inputs_indicators.push_back(stages_enabled_str[i] == '1');
-        if (stages_enabled_str[i] == '1') {
-          extra_inputs.push_back(add_input<Buffer<uint16_t>>("input_" +
-                                                             std::to_string(i), 2));
-        }
-      }
-    }
-
     void generate() {
-        std::cout << "starting" << std::endl;
 
         std::vector<Func> stages;
 
         Var x("x"), y("y");
 
-        Func f = input;//Halide::BoundaryConditions::repeat_edge(input, {{0, x_max}, {0,y_max}});
+        Func f = Halide::BoundaryConditions::repeat_edge(input);
 
         stages.push_back(f);
-        int cur_extra_input = 0;
+        int sten_max = ((int) stencil_size) / 2;
+        int sten_min = sten_max*(-1);
 
-        if (extra_inputs_indicators.size() < (size_t)stencils) {
-          std::cerr << "extra inputs indicator " << merge_stages.value()
-                    << " length is less than the number of stencil stages "
-                    << (int)stencils << std::endl;
-          exit(-1);
-        }
+        std::cout << "sten_max: " << sten_max << std::endl;
+        std::cout << "sten_min: " << sten_min << std::endl;
+        std::cout << "muladds: " << (int)muladds << std::endl;
 
         for (int s = 0; s < (int)stencils; s++) {
-          std::cout << "loop " << s << std::endl;
             Func f("stage_" + std::to_string(s));
-            Expr e = cast<uint16_t>(0);
-            for (int i = -2; i <= 2; i++) {
-                for (int j = -2; j <= 2; j++) {
-                    e += ((i + 3) * (j + 3)) * stages.back()(x + i, y + j);
+            Expr e = cast<uint16_t>(1);
+            for (int k = 0; k < (int) muladds; k++) {
+                Expr e_inner = cast<uint16_t>(0);
+                for (int i = sten_min; i <= sten_max; i++) {
+                    for (int j = sten_min; j <= sten_max; j++) {
+                        e_inner += (1 + (rand() % 100)) * stages.back()(x + i, y + j);
+                    }
                 }
+                e *= e_inner;
             }
-            if (extra_inputs_indicators[s] == true) {
-              e += (*extra_inputs[cur_extra_input++])(x,y);
-            }
+
             f(x, y) = e;
             stages.push_back(f);
         }
 
         output(x, y) = stages.back()(x, y);
 
+        /* ESTIMATES */
         // (This can be useful in conjunction with RunGen and benchmarks as well
         // as auto-schedule, so we do it in all cases.)
         {
@@ -82,24 +63,41 @@ public:
         if (auto_schedule) {
             // nothing
         } else if (get_target().has_gpu_feature()) {
+		std::cout << "scheduling gpu with " << (int)stencils << " stages" << std::endl;
             // GPU schedule
 
-            // 5.90 ms on a 2060 RTX
+            // 2.9 ms on a 2060 RTX
 
             // It seems that just compute-rooting all the stencils is
-            // fastest on this GPU, plus some unrolling to share loads
-            // between adjacent pixels.
+            // fastest on this GPU, plus some unrolling and aggressive
+            // staging to share loads between adjacent pixels.
             Var xi, yi, xii, yii;
+            stages.pop_back();
+            stages.push_back(output);
             for (size_t i = 1; i < stages.size(); i++) {
                 Func &s = stages[i];
+                Func prev = stages[i - 1];
                 x = s.args()[0];
                 y = s.args()[1];
                 s.compute_root()
-                    .gpu_tile(x, y, xi, yi, 64, 16)
+                    .gpu_tile(x, y, xi, yi, (32 - sten_max)*2, 12)
                     .tile(xi, yi, xii, yii, 2, 2)
                     .unroll(xii)
                     .unroll(yii);
+                prev.in()
+                    .compute_at(s, x)
+                    .tile(prev.args()[0], prev.args()[1], xi, yi, 2, 2)
+                    .vectorize(xi)
+                    .unroll(yi)
+                    .gpu_threads(prev.args()[0], prev.args()[1]);
+                prev.in()
+                    .in()
+                    .compute_at(s, xi)
+                    .vectorize(prev.args()[0], 2)
+                    .unroll(prev.args()[0])
+                    .unroll(prev.args()[1]);
             }
+
         } else {
             // CPU schedule
             // 4.23ms on an Intel i9-9960X using 16 threads at 3.5
@@ -110,6 +108,7 @@ public:
             // Makefile. This uses AVX-512 instructions, but not
             // floating-point ones. My CPU seems to hover at 3.5GHz on
             // this workload.
+		std::cout << "no gpu" << std::endl;
 
             const int vec = natural_vector_size<uint16_t>();
 
@@ -141,12 +140,6 @@ public:
                 }
             }
         }
-
-        std::ofstream memory_s("durst_memory.cpp"), memory_h_s("durst_memory.h"),
-          compute_s("durst_compute.h");
-        Halide::Internal::print_clockwork(memory_s, memory_h_s, compute_s, stages.back(),
-                                          "durst_memory.h", "durst_compute.h",
-                                          {x_max, y_max}, 16);
     }
 };
 

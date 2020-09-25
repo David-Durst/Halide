@@ -1,0 +1,559 @@
+* At Start Of Each session
+1. source /opt/Xilinx/petalinux/settings.sh
+3. source /opt/Xilinx/Vivado/2019.2/settings64.sh 
+* Useful Links
+1. overall collection of documentation and other stuff -
+   https://www.96boards.org/documentation/consumer/ultra96/ultra96-v2/
+2. basic tutorials - http://ultra96.org/support/design/24166/156
+   1. note: these don't show how to use the FPGA (the PL or programmable logic
+      on an SOC), they just show how to use the CPU (the PS or programming subsystem)
+3. a complete getting started guide - http://zedboard.org/sites/default/files/documentations/Ultra96-V2-GSG-v1_1.pdf
+4. courses on how to use the board - https://www.hackster.io/workshops/ultra96#page-block-cixf5me0udn
+5. high level intro on how to use both PL and PS for ultra96v1 - https://www.element14.com/community/roadTestReviews/2894/l/avnet-ultra96-dev-board-review
+6. in depth DMA example for picozed, could reuse for ultra96v2 - http://www.fpgadeveloper.com/2014/08/using-the-axi-dma-in-vivado.html
+7. Vitis vs Vivado
+   1. Vivado is how you program the FPGA and the hardware.
+   2. Vitis is how you write C code that targets the hardware
+   3. based on - https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/Chunk163315187.html#sit1566224950246
+8. Vitis overview -
+   1. platform - combination of hardware components (defined in XSA file) and
+      software compnents (domains/BSPs, boot components like FSBL)
+   2. Platform Project - one hardware component (one XSA) and multiple different
+      software components (ie can have multiple domains)
+      1. later links show - multiple system projects built on top of a platform
+         project. system projects contain applications
+   3. https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/Chunk163315187.html#sit1566224950246
+9. vitis platform project structure (explaining the diagram at https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/bnj1568388306365.html)
+   1. XSA - the hardware
+   2. Domain - the OS and drivers
+   3. System Project - a collection of multiple applications that run
+      simultaneously on separate processors. You cannot have multiple
+      applications on same processor in one system project
+      1. https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/rug1568385363513.html
+      2. exception - if two apps both run on linux, can run at same time due to multithreading
+         1. this exception is not stated in directly above link but implied from
+            diagram of vitis platform project structure
+   4. Application - actual project that runs dev's C/C++ code on a processor
+      1. https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/nao1556172441573.html
+10. Vitis vs Vivado SDK terminology - https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/rrz1570094760556.html
+    1. note: vivado SDK was old vivado system from writing embedded code of their
+       MPSoC. Most of the tutorials still use its terminology since vitis was
+       released in 2019
+    2. board support package (BSP) - layer of software containing
+       hardware-specific drivers and other routines that allow a particular
+       operating system (traditionally a real-time operating system, or RTOS) to
+       function in a particular hardware environment (a computer or CPU card),
+       integrated with the RTOS itself
+       1. aka - its the OS and drivers to talk to the hardware
+       2. https://en.wikipedia.org/wiki/Board_support_package
+    3. Vitis - board support package (BSP) which defined OS and other replaced with concept of a domain
+       1. domain defines which OS, scuh as Ubuntu, PetaLinux, or baremetal C
+       2. each application runs on top
+11. how to package an application that runs on linux for the board -
+    https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/Chunk1468064742.html
+12. types of AXI interfaces - https://www.xilinx.com/support/documentation/ip_documentation/axi_ref_guide/v13_4/ug761_axi_reference_guide.pdf
+    1. AXI - memory-mapped interface where send request to a specific memory
+       address, supports burst
+    2. AXI-lite - memory-mapped interface without burst support
+    3. AXI-stream (AXIS) - interface with no address support, just send and
+       receive data
+13. Vivado how to create a custom streaming IP block - https://www.youtube.com/watch?v=R8MSpEU7UKE
+14. Vitis 2019.2 guide to create linux platform on board - https://highlevel-synthesis.com/2019/11/07/how-to-create-ultra96v2-linux-based-platform-in-xilinx-vitis-2019-2/
+15. petalinux vs yocto - https://forums.xilinx.com/t5/Embedded-Linux/Project-Yocto-vs-Petalinux/td-p/972515
+    1. both are tools for building linux images from ubuntu/other distros that
+       run on embedded CPUs
+    2. but need more to run on SoC
+    3. petalinux commerical tool provided by Xilinx that builds on yocto
+    4. petalinux has some customization by vivado for its FPGAs
+16. ioctl - "An ioctl interface is a single system call by which userspace may
+    communicate with device drivers. Requests on a device driver are vectored
+    with respect to this ioctl system call, typically by a handle to the device
+    and a request number. The basic kernel can thus allow the userspace to
+    access a device driver without knowing anything about the facilities
+    supported by the device, and without needing an unmanageably large
+    collection of system calls. "
+    1. https://en.wikipedia.org/wiki/Ioctl
+17. Vivado docuentation on DMA from Linux userspace - https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18842418/Linux+DMA+From+User+Space
+    1. https://www.xilinx.com/video/soc/linux-dma-from-user-space.html
+    2. non-gui based DMA tutorial - https://lauri.võsandi.com/hdl/zynq/xilinx-dma.html
+18. THESE ARE BAD, USE THE NEXT TUTORIAL - two part series on how to make a 4 core design that runs linux using
+    petalinux on the Ultra96v2
+    1. how to setup the SoC - https://www.hackster.io/news/microzed-chronicles-vitis-acceleration-hardware-platform-creation-5ef634f49191
+    2. how to build the linux image - https://www.hackster.io/news/microzed-chronicles-vitis-sw-platform-fd3921137bcf
+19. must better tutorial for how to use petalinux (uses simpler SoC design,
+    actually explains how to flash SD card for board)
+    1. https://highlevel-synthesis.com/2019/12/15/running-ubuntu-on-ultra96v2-using-petalinux-2019-2-with-networking-and-linux-header/
+20. https://unix.stackexchange.com/questions/4948/shell-command-to-read-device-registers -
+    devmem2 allows writing to physical memory from shell
+21. driver explanation - https://stackoverflow.com/questions/20535837/what-exactly-is-a-character-driver
+    1. device driver is two parts
+       1. sw interface - API by which user space code calls kernel driver
+       2. hardware interface - code to manipulate hardware (like its registers)
+    2. three versions of sw interface - character, block, and network
+       1. character vs block device - "Character devices are those for which no
+          buffering is performed, and block devices are those which are accessed
+          through a cache. Block devices must be random access, but character
+          devices are not required to be, though some are."
+          1. https://www.tldp.org/LDP/khg/HyperNews/get/devices/basics.html#:~:text=Character%20vs.&text=Character%20devices%20are%20those%20for,they%20are%20on%20block%20devices.
+22. types of drivers explained - https://www.xilinx.com/video/soc/linux-user-space-device-drivers.html
+    1. /dev/mem - must be a root user to use this, good for prototype. Can map
+       any device
+    2. uio - userspace io - new linux framework for doing userspace io for
+       character mode devices
+23. driver for DMA with explanation for how to install in petalinux - https://github.com/bperez77/xilinx_axidma
+    1. other people showing no userspace driver, just platform driver by
+       xilinx - https://www.andrew.cmu.edu/user/jaewonch/fpga/feature_matcher/feature_matcher.html
+    2. other driver - https://github.com/ikwzm/udmabuf
+       1. not using as doesn't have instructions for how to compile for
+          petalinux as petalinux by default doesn't expose kernel sources,
+          likely could handle with petalinux-config module to expose those
+          sources, but will come back to this only if above driver doesn't work
+* Previously Installed:
+1. Vivado webpack 2019.2 (with vitis)
+   1. https://www.xilinx.com/support/download.html
+   2. note: you will need a xilinx account to do this
+   3. note: i started doing this on Windows. Everything worked until I tried to
+      create a Linux distro for the Ultra96-V2 using petalinux. I needed Ubuntu
+      for that. DO NOT TRY UBUNTU 20.04 for petalinux 2019.2. IT IS REALLY BAD.
+      If you must, here's some notes about how I got it kinda working. BUT YOU
+      SHOULD USE AN OFFICIALLY SUPPORTED RELEASE LIKE UBUNTU 18.04.2
+      1. The main changes I needed for 20.04 was installing
+         1. libtinfo5
+         2. python - I needed to install the python package for python2 as Ubuntu 20.04 only
+            has python3 but petalinux requires python2
+         3. libncurses5 libncursesw5
+         4. libgpg-error-dev 
+   4. https://www.linuxbabe.com/virtualbox/access-usb-from-virtualbox-guest-os -
+         needed to connect microsd card to virtualbox
+      1. step 2 wasn't necessary since I'm using a windows host
+
+* Installation Steps
+1. I made a Xilinx 
+2. followed instructions in Ultra96-V2 box to create license file and install it
+   on my machine
+   1. I followed these instructions to add the board to vivado 
+   1. http://zedboard.org/sites/default/files/documentations/Installing-Board-Definition-Files_v1_0.pdf
+   2. note: <install_location> on page 4 of the instructions was C:\Xilinx for me
+4. connect the uart chip to the main board, plug the power connecter in, and
+   follow
+   https://www.96boards.org/documentation/consumer/ultra96/ultra96-v2/getting-started/
+   to install the PetaLinux OS on the sd card
+5. follow pages 10-13 of
+   http://zedboard.org/sites/default/files/documentations/Ultra96-V2-GSG-v1_1.pdf
+   to log in via UART (this will be helpful later when debugging)
+   1. note: their instructions on how to configure the terminal for serial
+      configuraiton are too terse. I used PuTTY with a serial connection with
+      speed of 115200, data bits 8, stop bits 1, parity and flow control none
+
+* Tutorials
+** Basic Tutorials For Just PS From http://ultra96.org/support/design/24166/156
+   1. Tutorial 01: Build a ZU+ MPSoC Hardware Platform
+      1. note: when picking the board on page 9, pick the ultra96v2 evaluation
+         platform with file version 1.0. The tutorial is written before the v2
+         platform was released.
+      2. FPD - full power domain
+      3. HPC - high performance coherent
+      4. maxihpm1_fpd_aclk - the input clock signal for the full power clock domain
+         1. hpm - high performance master
+      5. IRQ - interrupt request
+         1. https://www.xilinx.com/support/documentation/ip_documentation/zynq_ultra_ps_e/v3_0/pg201-zynq-ultrascale-plus-processing-system.pdf
+      6. page 21  - says look for SDK folder. However, Vivado 2019.1 and later no
+         longer create that. Instead, they create a .xsa file. The Xilinx SDK
+         program, which consumed the SDK folder, has been replaced with Vitis,
+         which consumes the .xsa file to define its hardware platform
+      7. i think that when you export the xsa, you must wait until the bitstream
+         is finished generating and you must have the implementation focused
+   2. Tutorial 02: Hello World
+      1. instead of steps 5-10 on pp. 3-5, do File->New->Platform Project and
+         choose the xsa file created in the prior tutorial.
+         1. note: for now going to use default OS (standalone)
+      2. step 11 on p. 5 - instead of xdf file, go to hw folder in explorer, then select
+         the .xsa file
+      3. step 1-3 on p. 9-10 - we already made the BSP for the standalone OS. So
+         instead of instrusctions, open up the platform.spr file in the top level of the
+         project in the explorer
+         1. in the main pane, select the board support package for the
+            standalone on psu_cortexa53_0
+         2. modify BSP settings as shown in tutorial
+            1. actually,unclear if this is necessary. may not need to change the
+               uart from 0 to 1
+            2. ACTUALLY ACTUALLY - YOU MUST CHANGE THE SETTING. I HAD BEEN
+               WRONG. IT MUST BE CHANGED BEFORE CREATING THE APPLICATION
+               PROJECT. I TRIED CHANGING IT BACK FROM 1 to 0 AFTER CREATING THE APPLICATION
+               PROJECT AND IT HAD NO EFFECT, so I assumed it did nothing. IN
+               FACT, IT HAD NO EFFECT ONLY BECAUSE I DID IT AFTER MAKING
+               APPLICATION PROJECT AND CHANGES AREN'T PROPAGATED
+      4. ignore rest of instructions until page 12
+      5. for page 12, instead follow instructions at https://www.xilinx.com/html_docs/xilinx2019_2/vitis_doc/nao1556172441573.html
+      6. for page 13 - since the BSP has been renamed a domain and domains are
+         contained in the platform project, the layout will be different from
+         the tutorial
+      7. p. 14 - project didn't automatically build for me, I had to build the
+         application project myself
+      8. p. 16 - note: the default settings for SW3 are to boot from SD card,
+         not UART. You must change the switch to boot from UART, which is easier
+         for testing as can program directly from IDE.
+         1. Note: THIS SWITCH IS TRICKY. it's very small, too small and short to
+            manipulate by hand. Also The switch is stiff the first time it's
+            moved. I recommend using a mechanical pencil to push the switch .
+         2. it's called SW2 in the tutorial becuase the instructions are for
+            Ultra96v1. switch has been renamed on Ultra96v2 to SW3
+   3. Tutorial 03: Test Applications
+      1. skipped most of this as just running more C on the ARM cpus, not
+         interesting for FPGA testing
+      2. only issue - be sure to build applications before trying to run them.
+         The tutorial relies on the IDE autobuilding the application, which
+         Vitis doesn't do
+   4. Tutorial 04: Boot from microSD using FSBL
+      1. Step 3 on page 2 won't work. The SDK allowed you to generate BSP when
+         making a new application. Vitis requires making the domain before in
+         the platform project. So, instead of this step
+         1. Go to the platform project
+         2. Make a new domain by clicking on "psu_cortexa50_0" and then the plus
+            button at the top of the pane
+         3. Use the default settings for app.
+         4. Then click on the board support package underneath the domain you just created
+         5. In the main text pane, click the button "Modify BSP Settings..."
+         6. In the popup, enable xilffs, xilpm, and xilsecure and close the popup.
+         7. Right click the platform project in the explorer and build it
+      2. for step 3, use the domain you just created for FSBL
+      3. Ignore steps 6-7 on pp. 4-5
+      4. Note: I used the memtest app rather than the peripheral one since I
+         never completed the peripheral part of tutorial 3
+      5. I connected my PuTTY terminal to the serial port to observe the output
+         of the test
+      6. For step 1-2 on page 6, make sure you select the system project and not
+         the application project. Apparently, since the whole system project
+         runs on the platform, you must create the boot image for that. Vitis
+         will let you create the boot image for just the application project,
+         but the application code doesn't seem to run in that case
+      7. before step 3, make sure to build the system project for the FSBL application.
+      8. For step 3 on p. 7, replace the first boot image partition (the
+         bootloader) with the elf file in the debug folder of the FSBL
+         application project.
+         1. by default, vitis seems to use a bootloader from the platform
+            project. The platform project's bootloader doesn't seem to work
+      9. This works for hello world application but not for the memory test
+         application. not sure why.
+         1. The memory test application works by uart but not by sd card.
+         2. I tried reflashing the sd card with the linux build and it didn't
+            work.
+         3. *I suspect that there's an issue with my sd card. I'm stopping here
+            for now until I get a new sd card*
+** DMA Tutorial http://www.fpgadeveloper.com/2014/08/using-the-axi-dma-in-vivado.html
+1. When creating block design, start with Zynq Ultrascale+ MPSoC, which is the
+   equivalent of the processing_system7_0
+2. For the high performance slave interface in steps 4-5, I chose HPC0 as its coherent
+3. M_AXI_SG - AXI scatter gather
+   1. https://forums.xilinx.com/t5/AXI-Infrastructure-Archive/DMA-example-design-how-M-AXI-SG-and-M-AXI-S2MM-are-connected/td-p/909589
+4. axi_smc - AXI smartconnet, which replaced the interconnect. It's for
+   connecting multiple master and slave axis. It looks like there is 1 AXI
+   master from Zynq PS to slave on DMA. However, there are is 2 AXI masters from
+   DMA  (one for scatter-gather and one for stream to memory mapped) and 1 AXI
+   slave on Zynq PS. SMC merges the two masters on DMA so either can drive slave
+   on Zynq PS
+   1. https://www.xilinx.com/support/documentation/ip_documentation/smartconnect/v1_0/pg247-smartconnect.pdf
+   2. note: the default wiring was wrong. I made the axi_smc have 3 slave ports.
+      I connected axi_dma_0's ports M_AXI_SG, M_AXI_MM2S, and M_AXI_S2MM to
+      axi_smc's slave ports S00_AXI, S01_AXI, S02_AXI in that order.
+      1. you will need to run the connection assistant before fixing the wiring
+         in order for the slave axi ports on the axi_smc to appear
+   3. This was suggested by diagram in https://www.element14.com/community/roadTestReviews/2894/l/avnet-ultra96-dev-board-review
+   4. I also turned off the second AXI master port on the MPSoC by double
+      clicking on it, clicking PS-PL configuration, PS-PL Interfaces, Master Interface
+5. Change "Width of buffer length register" property of DMA to 23
+   1. Width of buffer length register - Length of internal counter / register in
+      the DMA which stores the length of DMA operation data. It should be in
+      your case at least 19 bits as 2^18 give you max length 262143 bytes which
+      is lower than the requested length 262144. This parameter does not
+      directly impact performance. It mainly impact maximal achievable frequency
+      and has slight impact on utilized FPGA resources.
+      1. https://forums.xilinx.com/t5/Processor-System-Design-and-AXI/Axi-DMA-correct-parameters/td-p/639576
+   2. 
+
+*** Connect the DMA interrupts to the PS
+1. ps_pl_irq0 will be widened to 2 bits automatically when you validate the design
+   1. the menu for configuring this with ultra96 is different, use PS-PL
+      Configuration -> General -> Interrupts -> PL to PS -> IRQ0
+   2. note: it says 16 bits in tutorial Re-customize IP popup and in MPSoC documentation, but block diagram
+      in tutorial and in my system only show 2 bits, so not sure what's up.
+      However, it seems like everything is fine
+   3. p.13-14 of https://www.xilinx.com/support/documentation/ip_documentation/zynq_ultra_ps_e/v3_0/pg201-zynq-ultrascale-plus-processing-system.pdf
+   4. at end of section, I had to manually wire the MPSoC's clock to the
+      m_axis_mm2s_aclk of the AXI_DMA, seems like either Vivado's wizard or the
+      tutorials instructions missed that
+      1. I also had to go into address editor and assign addresses for memory
+         that is mapped to the mm2s on the processor
+   5. I followed the instructions for including other addresses from https://www.element14.com/community/roadTestReviews/2894/l/avnet-ultra96-dev-board-review 
+2. before step 5, click on sources, then right click the block diagram and
+   export an HDL wrapper. They forgot this in the tutorial so you get an error
+   about no top module
+   1. https://forums.xilinx.com/t5/Welcome-Join/Error-Common-17-70-Application-Exception/td-p/776328
+*** Export the hardware design to SDK
+1. MAKE SURE TO CLICK CHECKBOX FOR EXPORT BITSTREAM WHEN EXPORTING FROM VIVADO
+2. Open Vitis instead of the SDK
+3. Create a new platform project as, unlike SDK in tutorial, it won't be
+   automatically made
+4. Note: BEFORE MAKING APPLICATION PROJECT, click on platform.spr in platform
+   project, then the Board Support Package for standalone on psu_coterxa53_0,
+   then Modify BSP Settings
+   1. in standalone, set stdin and stdout to psu_uart_1.
+   2. seems like psu_uart_0 isn't sent to the COM port
+   3. THIS MUST BE DONE BEFORE CREATING THE APPLICATION PROJECT. IT APPEARS THAT
+      THIS IS LOADED ON APPLICATION PROJECT CREATION AND THEN NEVER AGAIN
+*** Vitis Example Code Notes
+1. Code is in C:\Xilinx\Vitis\2019.2\data\embeddedsw\XilinxProfessorIPLib\drivers\axidma_v9_10\examples
+2. note: the version of examples seems to be unrelated to board, can just take
+   latest version if using these instructions in the future
+3. BD - buffer descriptor
+**** xaxidma_example_sg_poll
+1. example calls SendPacket to send data to the DMA.
+   1. TEST_START_VALUE sets first value sent on DMA to 0xC, then increment by 1
+      for rest of packets where a packet is MAX_PKT_LEN (which is 0x20 or 32
+      values each of 8 bits)
+   2. looks like only need 1 BD for the whole packet
+2. This uses polling in CheckDMAResult to wait until the DMA has finished
+   sending and receiving data and then call CheckData
+   1. this reads from values starting at location TEST_START_VALUE
+   2. the values start with 0xC and then increment by 1 for each value in packet
+**** xaxidma_example_sg_intr
+1. This uses interrupts rather than polling in CheckDMAResult to handle transmit
+   and receive
+2. TxIntrHandler and RxIntrHandler call TxCallBack and RxCallBack when the
+   interrupt occurs
+   1. note: the void *Callback argument to TxIntrHandler and RxIntrHandler is
+      not a function pointer to TxCallBack/RxCallBack, its a channel for
+      unknown purpose (I think it's a channel to listen for interrupts on), the
+      callback functions are hard coded into the handler
+3. CheckData is same as polling, reading from predefined memory location
+4. RxCallBack doesn't do much, just checks that BD are correct. it doesn't look
+   at actual values as CheckData handles that
+5. SendPacket also looks very similar to polling example at start of function,
+   except this handles multiple packets and has to do multiple BDs per packet,
+   not sure why need the more BDs per packet
+*** Vivado AXI https://www.youtube.com/watch?v=R8MSpEU7UKE
+1. making a new IP, choose AXI, then set AXI type (streaming) with a master and
+   a slave interface
+2. Created a new module with AXI interface call add1. This has three verilog files
+   1. add1_v1_0 - this is the main module code
+   2. add1_v1_0_S00_AXIS.v - this is the interface that receives input
+      1. mst_exec_state - whether writing a fifo or doing nothing
+      2. updating write_pointer (where to write in the stream_data_fifos) and
+         when you are done writing
+      3. generator at bottom of template code - generates 4-wide banked input
+         FIFO, where each bank processes 8 bytes at a time
+         1. C_S_AXIS_TDATA_WIDTH is 32, so divide by 4 to get 8 for a byte,
+            stream_data_fifo is one byte for each input word (with
+            NUMBER_OF_INPUT_WORDS stored in total in the fifo)
+         2. make a copy of stream_data_fifo for each byte read in parallel as
+            for loop over C_S_AXIS_TDATA_WIDTH/8 (32/8=4)
+         3. the banking comes from the for loop
+      4. this repeats a loop of accepting with 1 clock of idle between each loop
+   3. add1_v1_0_M00_AXIS.v - this is the interface that emits output
+      1. state machine - immediately leave idle state, then sit in INIT_COUNTER
+         for C_M_START_COUNT clocks (32 clocks), then start emitting by go to SEND_STREAM
+      2. this repeats a loop of sending with 1 clock of idle between each loop
+      3. needed to change this to decrease start count as no reason to wait 32
+         clocks unnecessarily
+      4. can be in send_state and not sending anything if tx_en is 0, as tx_done
+         will be 0 as well (so stay in send_state) but read_counter not
+         incrementing (as tx_en is 0)
+** BAD Linux Tutorial
+1. *Ignore this section. My progress is left here for historical purposes*
+*** Creating Hardware With 4 Cores https://www.hackster.io/news/microzed-chronicles-vitis-acceleration-hardware-platform-creation-5ef634f49191
+1. When wiring up the clocks to the processor resets, the tutorial neglects to
+   mention that the clk_wiz_0 clk_in1 needs to be wired to pl_clk0 and the
+   clk_wiz_0 resetn needs to be wired to the same reset as the processor system resets
+2. not sure why we need 4 clocks. This old guide (for another board) doesn't
+   make any mention of them https://www.xilinx.com/support/documentation/sw_manuals/xilinx2018_3/ug1209-embedded-design-tutorial.pdf
+   1. see new guide below that only uses 1 clock
+   2. also, I guess that must have processor reset to reset PL even if nothing is
+      on PL (maybe that's why every tutorial has at least that).
+   3. That reset must receive a clock, so that's why need a clocking wizard I guess
+3. add unconnected concat to ps_pl_irq0 so get a dummy 0 value into the interrupts
+   1. also - the multiple clock outputs aren't necessary, just provides
+      flexibility (unclear what actually uses flexibility though)
+   2. https://reiwaembedded.com/ultra96-v2-zynq-ultrascale-mpsoc-custom-image-creation-part-1-hardware-generation/
+*** how to build the linux image - https://www.hackster.io/news/microzed-chronicles-vitis-sw-platform-fd3921137bcf
+1. use bash instead of dash by running the following command and selecting no - sudo dpkg-reconfigure dash
+   1. https://www.xilinx.com/support/documentation/sw_manuals/xilinx2019_2/ug1144-petalinux-tools-reference-guide.pdf
+3. petalinux-config --get-hw-description=../ instead of petalinux-config
+   --get-hw-description=../vivado as the folder containing the xsa is the parent
+   folder, not a vivado folder in the parent folder
+
+** Linux Tutorial https://highlevel-synthesis.com/2019/12/15/running-ubuntu-on-ultra96v2-using-petalinux-2019-2-with-networking-and-linux-header/
+1. part 2, step 12 - I needed to go into window in the menus to enable platform
+   interfaces view
+2. zcu100 was ultra96
+   (https://forums.xilinx.com/t5/Video-and-Audio/Getting-started-with-video-for-MPSOC-ZCU100-Ultra96/td-p/905614),
+   so zcu100-revc is ultra96v2
+3. device tree - way to find non-discoverable hardware such as CPUs, RAMs,
+   busses/bridges, peripheral device connections
+   1. https://elinux.org/Device_Tree_What_It_Is
+   2. device tree examples - https://elinux.org/Device_Tree_Usage
+   3. why use device tree (what is discoverability) - on boot, need to find the
+      PCIe and CPU and RAM and USB ports, then can scan them to find new stuff
+      like USB plug and play. Discoverability not about finding devices on
+      ports but the actual ports themselves
+      1. question - https://lwn.net/Articles/456641/
+      2. answer - https://lwn.net/Articles/456652/
+4. section 3 -
+   1. use bash instead of dash by running the following command and selecting no - sudo dpkg-reconfigure dash
+      1. https://www.xilinx.com/support/documentation/sw_manuals/xilinx2019_2/ug1144-petalinux-tools-reference-guide.pdf
+   2. start by following instructions from
+      https://www.hackster.io/news/microzed-chronicles-vitis-sw-platform-fd3921137bcf
+      to install petalinux and sourcing settings files.
+   3. glibcxx errors occured for me when repeating this section. I fixed them by
+      installing petalinux to a new location, removing the old location,
+      restarting my computer, and sourceing the new petalinux install
+   4. misc/config System Configuration is the root menu for steps 4-7. After
+      step 7, exit this menu and will open new onein step 8
+5. section 4
+   1. chroot is how qemu "boots"
+   2. qemu-user-static enables arm emulation for qemu, unclear that mount points
+      are necessary
+   3. during chroot, run `ln -s /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@ttyPS0.service`
+      1. also, add ttyPS0 at the bottom of /etc/securetty
+         1. need this as won't boot due to some error message complaining about
+            ttyPS0 not being present.
+         2. *this is about connecting uart0 to a terminal I tink, which is weird
+            because we're using uart1, not uart0. Maybe I'll figure this out in
+            the future.*
+         3. update from 30 seconds later - I can log in now. For some reason,
+            PS0 is the tty that it's using over uart1. Hmmm.
+      2. https://forums.xilinx.com/t5/Embedded-Linux/Petalinux-2017-2-Ubuntu-RFS-on-Zynq-timed-out-waiting-for-device/td-p/800863
+   4. /lib/modules contains the kernel's modules. By copying that over after
+      installing ubuntu, I'm using the linux kernel configured by petalinux
+      rather than ubuntu's kernel
+*** Enabling Dynamic PL Reloading - https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841847/Solution+ZynqMP+PL+Programming#SolutionZynqMPPLProgramming-Loadinganoverlayalongwithit'sBitstream
+1. my complete version of these instructions
+   1. for petalinux config - FPGA Manager -> enable FPGA manager and don't need
+      to set hw directory path
+   2. for petlinux kernel config -
+      1. Device Drivers -> DMA Engine Support -> Xilinx DMA Engine -> enable
+         1. DMA test client for AXI DMA
+         2. DMA test client for VDMA
+      2. Device Drivers -> FPGA Configuration Framework (it's really far down on
+         the page, but its there) -> FPGA debug fs
+         1. also trying Device Feature List with all AFU and FME options (below
+            debug fs) - https://www.kernel.org/doc/html/latest/fpga/dfl.html
+            1. this might help get MMIO region for an FPGA
+         2. Xilinx Zynqmp FPGA is already enabled
+      3. DT overlay ConfigFS interface Configuration - already done by default
+      4. CONFIG_DMA_CMA and CONFIG_CMA - already done by default
+      5. 
+2 . It appears that you have to install fpgautil yourself from source (see the
+   tutorial for the source) and then run it. It successfully loaded my bit file
+   when I did that.
+3. https://forums.xilinx.com/t5/Embedded-Linux/AXI-DMA-interrupts-in-petalinux/td-p/730105 -
+   how to use DMA test
+** Building a Driver 
+1. https://github.com/bperez77/xilinx_axidma
+2. don't worry that can't set CONFIG_XILINX_AXIDMA and CONFIG_XILINX_AXIVDMA - https://github.com/bperez77/xilinx_axidma/issues/94
+   1. just make sure that Device Drivers -> DMA Engine support -> Xilinx DMA
+      Engines is set in petalinux-config -c kernel
+      1. it seems this is set y by default
+      2. I just enabled the DMA Test Client for AXI DMA
+   2. it seems like the place to look for the config file is components/plnx_workspace/sources/linux-xlnx
+      1. components/plnx_workspace/sources is where the sources for different
+         components are placed while they are checked out (petalinux-config -c
+         checks out a module's sources for working on)
+      2. linux-xlnx (linux-xilinx) is the name of the kernel module
+3. I couldn't find CONFIG_DMA_SHARED_BUFFER, but saw that DMA_SHARED_BUFFER is
+   on by default when searched in petalinux-config -c kernel
+   1. note: menus in
+      components/plnx_workspace/sources/linux-xlnx/drivers/base/Kconfig says
+      that DMA_SHARED_BUFFER is off by default, but it's on when you search in
+      menus. And search doesn't show location in menus, so no idea what's up.
+4. https://www.xilinx.com/support/documentation/sw_manuals/xilinx2019_2/ug1144-petalinux-tools-reference-guide.pdf
+   1. p. 110 -
+      project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi is
+      where to put changes to device tree
+5. how to enable CMA size in petalinux https://forums.xilinx.com/t5/Embedded-Linux/wherer-to-set-CMA-for-Petalinux/td-p/936237
+   1. note: Contiguous Mmeory Allocator is in Memory Managment options, not
+      kernel features
+   2. CMA size was 256, larger than 25 required by min for driver
+6. couldn't find DMA channels when looking at produced device tree in system.dts
+   (see below), but I did find them in pl.dtsi, so just copied the 
+   axidma_chrdev part to create the character driver in project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi  
+   1. to see part of produced device tree
+      1. copy ./images/linux/system.dtb to project root (or anywhere not in its
+         current location so can inspect)
+      2. convert to plaintext: dtc -I dtb -O dts -o system.dts system.dtb
+         1. .dts is a device tree source, a root dts file, can only have 1 i think
+         2. .dtsi is a device tree source include, which is included in dts for modularity
+         3. .dtb is a device tree blob
+         4. note: fdtdump is helpful for dtbo files. Not sure why this is
+            considered a low level utility, but dtc can't handle dtbo files for
+            some reason
+      3. get device tree of live system: dtc -I fs /sys/firmware/devicetree/base
+         1. https://unix.stackexchange.com/a/289630
+   2. unclear how complete that is, see
+      components/plnx_workspace/device-tree/device-tree/pl.dtsi for pl components
+      1. https://forums.xilinx.com/t5/Embedded-Linux/axi-dma-node-missing-from-the-device-tree/td-p/835359
+      2. components/plnx_workspace/device-tree/device-tree/pl-final.dts
+         1. this imports pl-custom.dtsi
+         2. there is a pl-custom in pl-final.dts's folder, likely its copied
+            from the below pl-custom
+      3. project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi
+         1. this is the main way for user to specify device tree setup
+      4. project-spec/meta-user/recipes-bsp/device-tree/files/pl-custom.dtsi
+         1. this is a file that it seems is for setting up the pl with custom settings
+      5. p. 103 of 2012.2 petalinux xilinx doc - confirms that fpga manager will
+         disable petalinux-package from including bitstream
+         1. tried setting petalinux-config -> FPGA Manager -> Specify hw
+            directory path as path to normal xsa
+         2. that didn't work, not necessary as already get bitstream and
+            overlay in /lib/firmware/base, adding a separate path just created
+            another bitstream
+      6. something about /configfs/device-tree on the rootfs has info about overlays
+         1. https://forums.xilinx.com/t5/Embedded-Linux/How-to-user-device-tree-overlay/td-p/862247
+         2. sysfs (Bitstream loading), debugfs (readback), configfs (Bitstream loading along with DTBO for PL drivers)
+         3. these are an alternative to fpgautil binary
+      7. ran petalinx-config -c device-tree to generate sources for device tree
+         at components/plnx_workspace/sources/device-tree/
+         1. trying to fix with - durst@durst-VirtualBox:~/dev/u96v2_axi_add/ubuntu_axi_add$ mv components/plnx_workspace/sources/device-tree/ ../
+         2. that broke things even worse, copied it back and ran
+            1. petalinux-build -c device-tree -x finish
+            2. this creates a path for the committed change of petalinux
+               and removes the source from the workspace (p.121 of petalinux
+               tools reference guide)
+         3. messages:
+         4. Leaving source tree
+            /home/durst/dev/u96v2_axi_add/ubuntu_axi_add/components/plnx_workspace/sources/device-tree
+            as-is; if you no longer need it then please delete it manually
+         5. Removing source tree from workspace: /home/durst/dev/u96v2_axi_add/ubuntu_axi_add/components/plnx_workspace/sources/device-tree
+         6. and source tree is actually gone and now editing the system-user.dtsi
+            in project-spec/meta-user actually has an impact again, no longer
+            screwed things up
+7. follow this for compiling with petalinux - https://github.com/bperez77/xilinx_axidma/issues/24
+   1. make sure to follow - https://github.com/bperez77/xilinx_axidma/issues/24#issuecomment-336158275
+      1. except remove file://xilinx-axidma.c
+   2. make sure to apply this fix - https://github.com/bperez77/xilinx_axidma/issues/103#issuecomment-506936320
+8. when copying modules over (following guide above used to create initial
+   image), you will find the dma driver in lib/modules/4.19.0-xilinx-v2019.2/extra
+   1. i tried copying over with xilinx's drivers in one folder higher (merged in
+      lib/modules) and didn't see a good result
+9. edit the system-user.dtsi in the following way to correct the device id of
+   the second dma channel: https://stackoverflow.com/questions/55692139/device-tree-how-can-i-change-a-property-of-a-childs-device-node
+10. When compiling the driver's examples, use the following command instead of the one on
+    the driver's main github page if compiling for a 64 bit arm processor like
+    the A53: make CROSS_COMPILE=aarch64-linux-gnu- ARCH=aarch64 examples
+11. if you don't increase the buffer length register to try 23, use the following command to do a small enough
+    DMA transfer so that it fits in memory
+    1. ./axidma_benchmark -b 16382 -s 16382
+    2. this still timing out, going to follow
+       https://github.com/bperez77/xilinx_axidma/issues/59 and try increasing
+       the width of buffer length register to 23
+       1. making that change got me farther, now 1 transfer works
+12. apply this change https://github.com/bperez77/xilinx_axidma/issues/112 to
+    get rid of the DMA mask error
+13. tried making memory map data width 64 for read and write, then making HPM
+    and HPC interfaces 64 bit for data on the Ultrascale MPSoC
+    1. based on https://github.com/bperez77/xilinx_axidma/issues/59
+14. trying 40 bit addresses based on https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18842337/Linux+Soft+DMA+Driver?showComments=true&showCommentArea=true
+    1. that got me past the tx test and didn't see any more invalid transfer
+       values, but then the rx test failed
+    2. I tried 64 bit address width and that took me backwards, started seeing
+       invalid transfers again
+
