@@ -15,9 +15,9 @@ using namespace Halide::Tools;
 using std::vector;
 
 int main(int argc, char **argv) {
-    if (argc < 5) {
-        printf("Usage: ./process input.png timing_iterations output.png merge_stages_len\n"
-               "e.g.: ./process input.png 10 output.png 2\n");
+    if (argc < 4) {
+        printf("Usage: ./process input.png timing_iterations output.png\n"
+               "e.g.: ./process input.png 10 output.png\n");
         return 0;
     }
 
@@ -26,19 +26,11 @@ int main(int argc, char **argv) {
     // Just take the red channel
     input.slice(2, 0);
 
-    vector<Buffer<uint16_t>> merge_inputs;
-    for (int i = 0; i < std::stoi(argv[4]); i++) {
-      merge_inputs.push_back(load_and_convert_image(argv[1]));
-      // Just take the red channel
-      merge_inputs[i].slice(2, 0);
-    }
-
     Buffer<uint16_t> output(input.width(), input.height());
     int timing = atoi(argv[2]);
 
     stencil_chain(input, output);
 
-    /*
     // Timing code
 
     // Manually-tuned version
@@ -58,7 +50,6 @@ int main(int argc, char **argv) {
 #endif
 
     convert_and_save_image(output, argv[3]);
-    */
 
     printf("Success!\n");
     return 0;
