@@ -38,7 +38,7 @@ public:
 
         Var x("x"), y("y");
 
-        Func f = input;//Halide::BoundaryConditions::repeat_edge(input, {{0, x_max}, {0,y_max}});
+        Func f = Halide::BoundaryConditions::repeat_edge(input, {{0, x_max}, {0,y_max}});
 
         stages.push_back(f);
         int cur_extra_input = 0;
